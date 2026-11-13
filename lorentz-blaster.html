@@ -1,0 +1,863 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Lorentz Blaster – 3D-Arcade</title>
+<style>
+  :root{
+    --bg:#081420;
+    --panel:#122235;
+    --panel2:#0d1a29;
+    --line:#20415f;
+    --amber:#f6b73d;
+    --red:#ff4d4d;
+    --green:#51ff85;
+    --cyan:#4ce2ff;
+    --text:#eaf6ff;
+    --muted:#9cb7cc;
+    --yellow:#ffee55;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0;
+    min-height:100vh;
+    background:radial-gradient(circle at top, #10253c 0, #081420 55%, #050b12 100%);
+    color:var(--text);
+    font-family:"Courier New", monospace;
+    display:flex;
+    justify-content:center;
+    align-items:flex-start;
+    padding:14px;
+  }
+  .app{
+    width:min(1150px, 100%);
+    background:linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.01));
+    border:4px solid var(--amber);
+    box-shadow:0 0 0 6px rgba(0,0,0,.5), 0 18px 45px rgba(0,0,0,.55);
+  }
+  .header{
+    padding:10px 14px;
+    border-bottom:4px solid var(--amber);
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:12px;
+    background:linear-gradient(180deg, rgba(246,183,61,.12), rgba(246,183,61,.03));
+  }
+  .title{
+    font-weight:800;
+    letter-spacing:1.5px;
+    font-size:clamp(20px, 3vw, 32px);
+    color:var(--yellow);
+    text-shadow:0 0 8px rgba(255,238,85,.35);
+  }
+  .sub{
+    color:var(--muted);
+    font-size:13px;
+  }
+  .score{
+    color:var(--green);
+    font-weight:700;
+    font-size:14px;
+    text-align:right;
+  }
+  .playfield{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:4px;
+    background:var(--amber);
+  }
+  .viewwrap{
+    background:#0a1320;
+    position:relative;
+    min-height:350px;
+  }
+  .viewtitle{
+    position:absolute;
+    top:8px;
+    left:10px;
+    z-index:2;
+    background:rgba(0,0,0,.45);
+    border:2px solid rgba(255,255,255,.12);
+    padding:4px 8px;
+    font-size:13px;
+    color:#dff5ff;
+  }
+  .view-tools{
+    position:absolute;
+    top:8px;
+    right:10px;
+    z-index:3;
+    display:flex;
+    align-items:center;
+    gap:6px;
+  }
+  .view-reset{
+    border:2px solid #6386a6;
+    background:#142b40;
+    color:#eaf6ff;
+    font-size:12px;
+    border-radius:4px;
+    padding:6px 8px;
+    box-shadow:none;
+  }
+  .viewhint{
+    position:absolute;
+    left:10px;
+    bottom:9px;
+    z-index:2;
+    color:#cae6f5;
+    background:rgba(6,16,29,.75);
+    font-size:12px;
+    padding:5px 7px;
+    pointer-events:none;
+  }
+  canvas{
+    cursor:grab;
+    touch-action:none;
+    width:100%;
+    height:100%;
+    display:block;
+    image-rendering:pixelated;
+    background:#07111c;
+  }
+  canvas.dragging{ cursor:grabbing; }
+  .bottom{
+    display:grid;
+    grid-template-columns:1.2fr .9fr 1.1fr;
+    gap:4px;
+    background:var(--amber);
+  }
+  .panel{
+    min-height:178px;
+    background:linear-gradient(180deg, #242424, #151515);
+    padding:12px;
+    border-top:0;
+  }
+  .messageBox{
+    background:#030507;
+    border:4px solid #d6d6d6;
+    min-height:150px;
+    padding:12px 14px;
+    color:#f7fbff;
+    font-size:17px;
+    line-height:1.28;
+  }
+  .messageBox em{color:#e9e9e9; font-style:italic}
+  .controls,
+  .fieldControls{display:flex; flex-direction:column; gap:10px;}
+  .sectionTitle{
+    color:#d0dee9;
+    font-size:14px;
+    text-transform:uppercase;
+    letter-spacing:1px;
+  }
+  .row{display:flex; flex-wrap:wrap; gap:8px; align-items:center;}
+  button{
+    cursor:pointer;
+    border:none;
+    font-family:inherit;
+    font-weight:700;
+    border-radius:8px;
+    padding:12px 14px;
+    font-size:16px;
+    transition:transform .08s ease, filter .08s ease;
+  }
+  button:hover{filter:brightness(1.07)}
+  button:active{transform:translateY(1px)}
+  .btnYellow{background:#f8ef29; color:#2a2a00; box-shadow:inset 0 -4px 0 rgba(0,0,0,.18)}
+  .btnGray{background:#a8acb3; color:#2d3138; box-shadow:inset 0 -4px 0 rgba(0,0,0,.18)}
+  .btnGreen{background:#45f17b; color:#07200f; box-shadow:inset 0 -4px 0 rgba(0,0,0,.16)}
+  .btnBlue{background:#54dfff; color:#09283a; box-shadow:inset 0 -4px 0 rgba(0,0,0,.16)}
+  .btnDir{min-width:92px}
+  .selected{outline:4px solid rgba(255,255,255,.95); outline-offset:-3px;}
+  .disabled{opacity:.45; cursor:not-allowed; filter:grayscale(.25);}
+  .status{
+    color:#d2e5f0;
+    background:#0b1824;
+    border:2px solid #28465d;
+    padding:8px 10px;
+    border-radius:8px;
+    font-size:14px;
+  }
+  .legend{color:var(--muted); font-size:13px}
+  .pill{display:inline-block; padding:4px 8px; border-radius:999px; font-weight:700;}
+  .pill.red{background:rgba(255,77,77,.18); color:#ff9a9a}
+  .pill.blue{background:rgba(76,226,255,.16); color:#adf3ff}
+  .pill.green{background:rgba(81,255,133,.16); color:#bbffd0}
+  @media (max-width: 950px){
+    .bottom{grid-template-columns:1fr;}
+    .playfield{grid-template-columns:1fr;}
+    .viewwrap{min-height:270px;}
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="header">
+    <div>
+      <div class="title">LORENTZ BLASTER</div>
+      <div class="sub">Ladung oder Magnetfeld richtig wählen – dann trifft dein Schuss den Alien.</div>
+    </div>
+    <div class="score" id="scoreBox">Mission 1/10<br>Treffer: 0</div>
+  </div>
+
+  <div class="playfield">
+    <div class="viewwrap">
+      <div class="viewtitle">ANSICHT A · 3D</div>
+      <div class="view-tools"><button class="view-reset" data-reset="A" title="Ansicht A zurücksetzen">↺ Zurück</button><button class="view-reset" data-zoom="in" data-camera="A" title="Ansicht A vergrößern">+</button><button class="view-reset" data-zoom="out" data-camera="A" title="Ansicht A verkleinern">−</button></div>
+      <canvas id="canvasA" width="540" height="420" aria-label="Drehbare 3D-Ansicht A"></canvas>
+      <div class="viewhint">Ziehen: drehen · Mausrad: zoomen</div>
+    </div>
+    <div class="viewwrap">
+      <div class="viewtitle">ANSICHT B · 3D</div>
+      <div class="view-tools"><button class="view-reset" data-reset="B" title="Ansicht B zurücksetzen">↺ Zurück</button><button class="view-reset" data-zoom="in" data-camera="B" title="Ansicht B vergrößern">+</button><button class="view-reset" data-zoom="out" data-camera="B" title="Ansicht B verkleinern">−</button></div>
+      <canvas id="canvasB" width="540" height="420" aria-label="Drehbare 3D-Ansicht B"></canvas>
+      <div class="viewhint">Ziehen: drehen · Mausrad: zoomen</div>
+    </div>
+  </div>
+
+  <div class="bottom">
+    <div class="panel">
+      <div class="messageBox" id="messageBox"></div>
+    </div>
+
+    <div class="panel controls">
+      <div class="sectionTitle">Steuerung</div>
+      <div class="row" id="chargeRow">
+        <button class="btnYellow" id="btnChargePos">Ladung: positiv</button>
+        <button class="btnBlue" id="btnChargeNeg">Ladung: negativ</button>
+      </div>
+      <div class="row">
+        <button class="btnGreen" id="shootBtn">Schuss</button>
+        <button class="btnGray" id="nextBtn">Weiter</button>
+        <button class="btnGray" id="retryBtn">Neu versuchen</button>
+      </div>
+      <div class="status" id="statusBox"></div>
+      <div class="legend">Ansichten unabhängig drehen. Ladung und Magnetfeld bleiben wie bisher einfach einstellbar.</div>
+    </div>
+
+    <div class="panel fieldControls">
+      <div class="sectionTitle">Auswahl Feldlinien</div>
+      <div class="row" id="fieldButtonsRow1">
+        <button class="btnDir btnGray" data-field="+z">Hinaus</button>
+        <button class="btnDir btnGray" data-field="-z">Hinein</button>
+      </div>
+      <div class="row" id="fieldButtonsRow2">
+        <button class="btnDir btnGray" data-field="+y">Hoch</button>
+        <button class="btnDir btnGray" data-field="-y">Runter</button>
+        <button class="btnDir btnGray" data-field="-x">Links</button>
+        <button class="btnDir btnGray" data-field="+x">Rechts</button>
+      </div>
+      <div class="status" id="hintBox"></div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+(() => {
+  const canvasA = document.getElementById('canvasA');
+  const canvasB = document.getElementById('canvasB');
+  const ctxA = canvasA.getContext('2d');
+  const ctxB = canvasB.getContext('2d');
+
+  const messageBox = document.getElementById('messageBox');
+  const scoreBox = document.getElementById('scoreBox');
+  const statusBox = document.getElementById('statusBox');
+  const hintBox = document.getElementById('hintBox');
+
+  const btnChargePos = document.getElementById('btnChargePos');
+  const btnChargeNeg = document.getElementById('btnChargeNeg');
+  const shootBtn = document.getElementById('shootBtn');
+  const nextBtn = document.getElementById('nextBtn');
+  const retryBtn = document.getElementById('retryBtn');
+  const fieldButtons = Array.from(document.querySelectorAll('[data-field]'));
+
+  // Jede Ansicht hat ihre eigene räumliche Kamera; die Flugbahn bleibt identisch.
+  const defaultCameras = {
+    A:{yaw:0, pitch:0, zoom:1},
+    B:{yaw:-Math.PI/2, pitch:0, zoom:1}
+  };
+  const cameras = {
+    A:{...defaultCameras.A},
+    B:{...defaultCameras.B}
+  };
+  const clamp = (v,min,max) => Math.max(min,Math.min(max,v));
+
+  function installCameraControls(canvas, name){
+    let drag = null;
+    canvas.addEventListener('pointerdown', e => {
+      if (e.button !== 0 && e.pointerType === 'mouse') return;
+      drag = {x:e.clientX,y:e.clientY,id:e.pointerId};
+      canvas.setPointerCapture(e.pointerId);
+      canvas.classList.add('dragging');
+      e.preventDefault();
+    });
+    canvas.addEventListener('pointermove', e => {
+      if (!drag || drag.id !== e.pointerId) return;
+      const dx=e.clientX-drag.x, dy=e.clientY-drag.y;
+      drag.x=e.clientX; drag.y=e.clientY;
+      cameras[name].yaw -= dx*0.009;
+      cameras[name].pitch = clamp(cameras[name].pitch + dy*0.008,-1.28,1.28);
+      draw();
+    });
+    const finish = () => {drag=null;canvas.classList.remove('dragging');};
+    canvas.addEventListener('pointerup',finish);
+    canvas.addEventListener('pointercancel',finish);
+    canvas.addEventListener('lostpointercapture',finish);
+    canvas.addEventListener('wheel', e => {
+      e.preventDefault();
+      cameras[name].zoom=clamp(cameras[name].zoom*Math.exp(-e.deltaY*0.001),.65,1.6);
+      draw();
+    },{passive:false});
+    canvas.addEventListener('dblclick',() => {
+      cameras[name] = {...defaultCameras[name]};
+      draw();
+    });
+  }
+  installCameraControls(canvasA,'A');
+  installCameraControls(canvasB,'B');
+  document.querySelectorAll('[data-zoom]').forEach(button => {
+    button.addEventListener('click',()=>{
+      const name=button.dataset.camera;
+      cameras[name].zoom=clamp(cameras[name].zoom*(button.dataset.zoom==='in'?1.18:1/1.18),.65,1.6);
+      draw();
+    });
+  });
+  document.querySelectorAll('[data-reset]').forEach(button => {
+    button.addEventListener('click',() => {
+      const name=button.dataset.reset;
+      cameras[name]={...defaultCameras[name]};
+      draw();
+    });
+  });
+
+  const FIELD_LABEL = {
+    '+z':'hinaus', '-z':'hinein', '+x':'rechts', '-x':'links', '+y':'hoch', '-y':'runter'
+  };
+  const FIELD_VECTOR = {
+    '+x':[1,0,0], '-x':[-1,0,0], '+y':[0,1,0], '-y':[0,-1,0], '+z':[0,0,1], '-z':[0,0,-1]
+  };
+  const OFFSET = {1:-54, 2:0, 3:54};
+  const Y_TARGET = 148;
+
+  const missions = [
+    { kind:'charge', fixedField:'-z', axis:'x', pos:1, title:'M1', text:'Das Magnetfeld ist auf <strong>hinein</strong> gestellt. Alien in <em>Pos. 1</em> (Ansicht A). Wähle die richtige <strong>Ladung</strong>.' },
+    { kind:'field', fixedCharge:+1, axis:'x', pos:3, title:'M2', text:'Die <strong>Ladung ist positiv</strong>. Alien in <em>Pos. 3</em> (Ansicht A). Wähle die richtige <strong>Magnetfeldrichtung</strong>.' },
+    { kind:'charge', fixedField:'+x', axis:'z', pos:3, title:'M3', text:'Das Magnetfeld zeigt nach <strong>rechts</strong>. Alien in <em>Pos. 3</em> der <strong>Ansicht B</strong>. Welche <strong>Ladung</strong> trifft?' },
+    { kind:'field', fixedCharge:-1, axis:'z', pos:1, title:'M4', text:'Die <strong>Ladung ist negativ</strong>. Alien in <em>Pos. 1</em> der <strong>Ansicht B</strong>. Welche <strong>Magnetfeldrichtung</strong> brauchst du?' },
+    { kind:'free', axis:'x', pos:1, title:'M5', text:'Alien gesichtet in <em>Pos. 1</em> (Ansicht A). Wähle <strong>Ladung</strong> und <strong>Magnetfeld</strong> so, dass dein Schuss trifft.' },
+    { kind:'free', axis:'x', pos:3, title:'M6', text:'Alien gesichtet in <em>Pos. 3</em> (Ansicht A). Wähle wieder <strong>Ladung</strong> und <strong>Magnetfeld</strong> passend.' },
+    { kind:'free', axis:'z', pos:1, title:'M7', text:'Alien gesichtet in <em>Pos. 1</em> der <strong>Ansicht B</strong>. Finde eine passende Kombination aus <strong>Ladung</strong> und <strong>Feldrichtung</strong>.' },
+    { kind:'free', axis:'z', pos:3, title:'M8', text:'Alien gesichtet in <em>Pos. 3</em> der <strong>Ansicht B</strong>. Wähle <strong>Ladung</strong> und <strong>Magnetfeld</strong> so, dass der Alien getroffen wird.' },
+    { kind:'free', axis:'x', pos:2, title:'M9', text:'Das Alien ist <em>mittig</em>. Du kannst <strong>Ladung und Magnetfeld</strong> einstellen. Finde eine <strong>Magnetfeldrichtung</strong>, bei der der Schuss <strong>geradeaus</strong> fliegt. <br><em>Tipp: Ein Feld parallel zur Schussrichtung lenkt nicht ab.</em>' },
+    { kind:'free', title:'M10', text:'Freie Bonus-Mission: Du darfst <strong>Ladung</strong> und <strong>Magnetfeld</strong> selbst wählen. Triff das Alien!' }
+  ];
+
+  let state = {
+    missionIndex:0,
+    selectedCharge:+1,
+    selectedField:'-z',
+    animating:false,
+    result:null,
+    hits:0,
+    projectileHistory:[],
+    projectilePos:[0,0,0],
+    projectileAlive:false,
+    missionSolved:false,
+    target:{x:OFFSET[1], y:Y_TARGET, z:0},
+  };
+
+  function updateMissionTarget(){
+    const m = missions[state.missionIndex];
+    // Das Ziel richtet sich nach dem Inhalt der Mission, nicht nach ihrer Position
+    // in der Liste. So bleibt es nach einer Umordnung am richtigen Platz.
+    state.target = {
+      x: m.axis === 'x' ? OFFSET[m.pos] : 0,
+      y: Y_TARGET,
+      z: m.axis === 'z' ? OFFSET[m.pos] : 0,
+    };
+  }
+
+  function missionHint(){
+    const m = missions[state.missionIndex];
+    if(m.kind === 'charge') return 'Du darfst nur die Ladung ändern. Das Magnetfeld ist fest vorgegeben.';
+    if(m.kind === 'field') return 'Du darfst nur das Magnetfeld ändern. Die Ladung ist fest vorgegeben.';
+    return 'Du darfst Ladung und Magnetfeld beide selbst wählen.';
+  }
+
+  function correctSetupForMission(m){
+    if (m.kind === 'charge') {
+      const field = m.fixedField;
+      const sign = neededCharge(field, state.target);
+      return {charge:sign, field};
+    }
+    if (m.kind === 'field') {
+      const charge = m.fixedCharge;
+      const field = neededField(charge, state.target);
+      return {charge, field};
+    }
+    // free
+    if (state.target.x < 0) return {charge:+1, field:'-z'};
+    if (state.target.x > 0) return {charge:+1, field:'+z'};
+    if (state.target.z < 0) return {charge:+1, field:'+x'};
+    if (state.target.z > 0) return {charge:+1, field:'-x'};
+    return {charge:+1, field:'+y'};
+  }
+
+  function neededCharge(field, target){
+    const b = FIELD_VECTOR[field];
+    // Direction of force for positive charge when v=(0,1,0)
+    const f = cross([0,1,0], b);
+    // if target centered, any zero-force option won't work for charge missions, avoid such missions.
+    if (Math.abs(target.x) > Math.abs(target.z)) return Math.sign(target.x) === Math.sign(f[0]) ? +1 : -1;
+    return Math.sign(target.z) === Math.sign(f[2]) ? +1 : -1;
+  }
+
+  function neededField(charge, target){
+    if (target.x < 0) return charge === +1 ? '-z' : '+z';
+    if (target.x > 0) return charge === +1 ? '+z' : '-z';
+    if (target.z < 0) return charge === +1 ? '+x' : '-x';
+    if (target.z > 0) return charge === +1 ? '-x' : '+x';
+    return '+y';
+  }
+
+  function setCharge(q){
+    if (lockedCharge()) return;
+    state.selectedCharge = q;
+    refreshUI();
+    draw();
+  }
+
+  function setField(f){
+    if (lockedField()) return;
+    state.selectedField = f;
+    refreshUI();
+    draw();
+  }
+
+  function lockedCharge(){
+    const m = missions[state.missionIndex];
+    return m.kind === 'field';
+  }
+  function lockedField(){
+    const m = missions[state.missionIndex];
+    return m.kind === 'charge';
+  }
+
+  btnChargePos.onclick = () => setCharge(+1);
+  btnChargeNeg.onclick = () => setCharge(-1);
+  fieldButtons.forEach(b => b.onclick = () => setField(b.dataset.field));
+
+  shootBtn.onclick = () => { if (!state.animating) fire(); };
+  retryBtn.onclick = () => { if (!state.animating) resetShot(false); };
+  nextBtn.onclick = () => { if (!state.animating) nextMission(); };
+
+  function refreshUI(){
+    const m = missions[state.missionIndex];
+    // Apply fixed values
+    if (m.kind === 'field') state.selectedCharge = m.fixedCharge;
+    if (m.kind === 'charge') state.selectedField = m.fixedField;
+
+    btnChargePos.classList.toggle('selected', state.selectedCharge === +1);
+    btnChargeNeg.classList.toggle('selected', state.selectedCharge === -1);
+    btnChargePos.classList.toggle('disabled', lockedCharge());
+    btnChargeNeg.classList.toggle('disabled', lockedCharge());
+
+    fieldButtons.forEach(btn => {
+      btn.classList.toggle('selected', btn.dataset.field === state.selectedField);
+      btn.classList.toggle('disabled', lockedField());
+    });
+
+    scoreBox.innerHTML = `Mission ${state.missionIndex + 1}/${missions.length}<br>Treffer: ${state.hits}`;
+    if (!state.result) {
+      messageBox.innerHTML = missions[state.missionIndex].text;
+    }
+
+    const chargeText = state.selectedCharge > 0 ? '<span class="pill red">positiv</span>' : '<span class="pill blue">negativ</span>';
+    const fieldText = `<span class="pill green">${FIELD_LABEL[state.selectedField]}</span>`;
+    statusBox.innerHTML = `Aktuell: Ladung ${chargeText} · Feld ${fieldText}`;
+    hintBox.textContent = missionHint();
+
+    nextBtn.textContent = state.missionIndex === missions.length - 1 ? 'Mission 1' : 'Weiter';
+  }
+
+  function resetShot(full=true){
+    state.animating = false;
+    state.result = null;
+    state.projectileHistory = [];
+    state.projectilePos = [0,0,0];
+    state.projectileAlive = false;
+    if (full) state.missionSolved = false;
+    draw();
+  }
+
+  function nextMission(){
+    state.missionIndex = (state.missionIndex + 1) % missions.length;
+    updateMissionTarget();
+    resetShot(true);
+    refreshUI();
+  }
+
+  function cross(a,b){
+    return [
+      a[1]*b[2] - a[2]*b[1],
+      a[2]*b[0] - a[0]*b[2],
+      a[0]*b[1] - a[1]*b[0]
+    ];
+  }
+  function len(v){ return Math.hypot(v[0],v[1],v[2]); }
+  function scale(v,s){ return [v[0]*s, v[1]*s, v[2]*s]; }
+  function add(a,b){ return [a[0]+b[0], a[1]+b[1], a[2]+b[2]]; }
+
+  function fire(){
+    state.animating = true;
+    state.result = null;
+    state.projectileHistory = [[0,0,0]];
+    state.projectilePos = [0,0,0];
+    state.projectileAlive = true;
+
+    let pos = [0,0,0];
+    let lateralVel = [0,0,0];
+    const B = FIELD_VECTOR[state.selectedField];
+    const q = state.selectedCharge;
+    const forceDir = scale(cross([0,1,0], B), q);
+    const activationY = 28;
+    const yStep = 2.4;
+    const lateralA = 0.035;
+    let frame = 0;
+
+    function step(){
+      if (!state.animating) return;
+      pos[1] += yStep;
+      if (pos[1] >= activationY) {
+        lateralVel[0] += forceDir[0] * lateralA;
+        lateralVel[2] += forceDir[2] * lateralA;
+      }
+      pos[0] += lateralVel[0];
+      pos[2] += lateralVel[2];
+      state.projectileHistory.push([...pos]);
+      state.projectilePos = [...pos];
+      frame++;
+
+      const hit = distance(pos, [state.target.x, state.target.y, state.target.z]) < 14;
+      const out = pos[1] > Y_TARGET + 18 || Math.abs(pos[0]) > 100 || Math.abs(pos[2]) > 100;
+
+      if (hit || out || frame > 120) {
+        state.animating = false;
+        state.projectileAlive = false;
+        if (hit) {
+          state.result = 'hit';
+          if (!state.missionSolved) state.hits++;
+          state.missionSolved = true;
+          messageBox.innerHTML = `Treffer!<br><em>Gut beobachtet.</em><br>Der Schuss hat den Alien erreicht.`;
+        } else {
+          state.result = 'miss';
+          const m = missions[state.missionIndex];
+          const correct = correctSetupForMission(m);
+          const corrCharge = correct.charge > 0 ? 'positiv' : 'negativ';
+          if (m.title === 'M9') {
+            messageBox.innerHTML = `Vorbei!<br><em>Beobachte die Ablenkung.</em><br>Für einen geraden Flug muss das Magnetfeld <strong>parallel zur Schussrichtung</strong> sein: also <strong>hoch</strong> oder <strong>runter</strong>.`;
+          } else if (m.kind === 'free') {
+            messageBox.innerHTML = `Vorbei!<br><em>Beobachte die Ablenkung.</em><br>Es gibt hier mehr als eine richtige Kombination. Eine mögliche Lösung ist: <strong>Ladung ${corrCharge}</strong> und <strong>Feld ${FIELD_LABEL[correct.field]}</strong>.`;
+          } else {
+            messageBox.innerHTML = `Vorbei!<br><em>Beobachte die Ablenkung.</em><br>Richtige Lösung für diese Mission: <strong>Ladung ${corrCharge}</strong> und <strong>Feld ${FIELD_LABEL[correct.field]}</strong>.`;
+          }
+        }
+        refreshUI();
+      }
+      draw();
+      if (state.animating) requestAnimationFrame(step);
+    }
+    requestAnimationFrame(step);
+  }
+
+  function distance(a,b){
+    return Math.hypot(a[0]-b[0], a[1]-b[1], a[2]-b[2]);
+  }
+
+  function dot(a,b){return a[0]*b[0]+a[1]*b[1]+a[2]*b[2];}
+
+  function cameraBasis(name){
+    const c=cameras[name];
+    const cy=Math.cos(c.yaw), sy=Math.sin(c.yaw);
+    const cp=Math.cos(c.pitch), sp=Math.sin(c.pitch);
+    return {
+      right:[cy,0,-sy],
+      up:[-sy*sp,cp,-cy*sp],
+      forward:[sy*cp,sp,cy*cp]
+    };
+  }
+
+  function project3D(p,name){
+    const c=cameras[name], b=cameraBasis(name);
+    const rel=[p[0],p[1]-76,p[2]];
+    const dep=dot(rel,b.forward);
+    const perspective=500/(500-dep);
+    const sx=270 + dot(rel,b.right)*2.6*c.zoom*perspective;
+    const sy=215 - dot(rel,b.up)*2.05*c.zoom*perspective;
+    return [sx,sy,perspective,dep];
+  }
+
+  function projectA(p){ return project3D(p,'A'); }
+  function projectB(p){ return project3D(p,'B'); }
+
+  function starfield(ctx,w,h){
+    ctx.fillStyle = '#081420';
+    ctx.fillRect(0,0,w,h);
+    for(let i=0;i<95;i++){
+      const x = (i*57 % w), y = (i*131 % h);
+      ctx.fillStyle = i % 6 === 0 ? 'rgba(76,226,255,.28)' : 'rgba(255,255,255,.22)';
+      ctx.fillRect(x, y, i%5===0?3:2, i%5===0?3:2);
+    }
+  }
+
+  function drawGrid(ctx,w,h){
+    ctx.strokeStyle = 'rgba(255,255,255,.05)';
+    ctx.lineWidth = 1;
+    for(let x=60;x<w;x+=80){ ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,h); ctx.stroke(); }
+    for(let y=50;y<h;y+=70){ ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(w,y); ctx.stroke(); }
+  }
+
+  function drawLine3D(ctx, a, b, view){
+    const pa=project3D(a,view),pb=project3D(b,view);
+    ctx.beginPath(); ctx.moveTo(pa[0],pa[1]); ctx.lineTo(pb[0],pb[1]);ctx.stroke();
+  }
+
+  function drawVolume(ctx,view){
+    // Transparentes 3D-Magnetfeldvolumen als Raumorientierung.
+    const xs=[-82,82], ys=[12,169], zs=[-72,72];
+    ctx.save();
+    ctx.strokeStyle='rgba(72,191,245,.21)';
+    ctx.lineWidth=1.5;
+    for(const x of xs) for(const y of ys) drawLine3D(ctx,[x,y,zs[0]],[x,y,zs[1]],view);
+    for(const x of xs) for(const z of zs) drawLine3D(ctx,[x,ys[0],z],[x,ys[1],z],view);
+    for(const y of ys) for(const z of zs) drawLine3D(ctx,[xs[0],y,z],[xs[1],y,z],view);
+    ctx.restore();
+  }
+
+  function drawFieldPattern(ctx, view){
+    const b=FIELD_VECTOR[state.selectedField];
+    const basis=cameraBasis(view);
+    const lookingAlong=Math.abs(dot(b,basis.forward))>.88;
+    let centers=[];
+    let halfSpan=88;
+    if (Math.abs(b[0])===1){
+      for(const y of [32,77,116]) for(const z of [-48,0,48]) centers.push([0,y,z]);
+    } else if(Math.abs(b[2])===1){
+      for(const y of [32,77,116]) for(const x of [-58,0,58]) centers.push([x,y,0]);
+    } else {
+      halfSpan=79;
+      for(const x of [-58,0,58]) for(const z of [-48,0,48]) centers.push([x,90,z]);
+    }
+    ctx.save();
+    for(const c of centers){
+      if(lookingAlong){
+        // Ein Punkt = B zeigt zum Betrachter, ein Kreuz = B zeigt weg.
+        const [x,y,fac]=project3D(c,view);
+        const r=clamp(12*fac,.8,18);
+        ctx.strokeStyle='rgba(255,79,67,.78)';
+        ctx.lineWidth=2.5;
+        ctx.beginPath();ctx.arc(x,y,r,0,2*Math.PI);ctx.stroke();
+        if(dot(b,basis.forward)>0){
+          ctx.fillStyle='#ff6250';
+          ctx.fillRect(x-3,y-3,6,6);
+        } else {
+          ctx.beginPath();ctx.moveTo(x-r*.6,y-r*.6);ctx.lineTo(x+r*.6,y+r*.6);
+          ctx.moveTo(x+r*.6,y-r*.6);ctx.lineTo(x-r*.6,y+r*.6);ctx.stroke();
+        }
+      } else {
+        const a=add(c,scale(b,-halfSpan));
+        const e=add(c,scale(b,halfSpan));
+        ctx.strokeStyle='rgba(255,66,66,.57)';
+        ctx.lineWidth=3;
+        drawLine3D(ctx,a,e,view);
+        const pa=project3D(add(c,scale(b,19)),view);
+        const pb=project3D(add(c,scale(b,31)),view);
+        ctx.strokeStyle='#ff5b4f';
+        ctx.lineWidth=3.5;
+        drawArrowHead(ctx,pb[0],pb[1],pb[0]-pa[0],pb[1]-pa[1]);
+      }
+    }
+    ctx.restore();
+  }
+
+  function drawArrowHead(ctx,x,y,dx,dy){
+    const ang = Math.atan2(dy, dx);
+    const s = 10;
+    ctx.beginPath();
+    ctx.moveTo(x,y);
+    ctx.lineTo(x - Math.cos(ang - 0.5)*s, y - Math.sin(ang - 0.5)*s);
+    ctx.moveTo(x,y);
+    ctx.lineTo(x - Math.cos(ang + 0.5)*s, y - Math.sin(ang + 0.5)*s);
+    ctx.stroke();
+  }
+
+  function drawPositions(ctx,view){
+    const name=view;
+    for(let i=1;i<=3;i++){
+      const x=name==='A'?OFFSET[i]:0;
+      const z=name==='B'?OFFSET[i]:0;
+      const [px,py]=project3D([x,Y_TARGET+13,z],name);
+      if(px<8||px>ctx.canvas.width-8||py<8||py>ctx.canvas.height-20) continue;
+      ctx.font='bold 14px Courier New';
+      ctx.textAlign='center';
+      ctx.fillStyle='rgba(230,249,255,.9)';
+      ctx.fillText('Pos. '+i,px,py);
+    }
+    ctx.textAlign='start';
+  }
+
+  function drawShip(ctx, x, y, depthScale=1){
+    ctx.save();
+    ctx.translate(x,y);
+    ctx.scale(clamp(depthScale,.7,1.35),clamp(depthScale,.7,1.35));
+    // Thrusters
+    ctx.fillStyle = '#36a4ff';
+    ctx.fillRect(-18,24,9,14); ctx.fillRect(9,24,9,14); ctx.fillRect(-4,19,8,18);
+    // Body
+    ctx.fillStyle = '#d9e6f2';
+    ctx.fillRect(-10,-6,20,30);
+    ctx.fillStyle = '#7d8da6';
+    ctx.fillRect(-24,8,14,18); ctx.fillRect(10,8,14,18);
+    ctx.fillStyle = '#2669ff';
+    ctx.fillRect(-6,0,12,14);
+    ctx.fillStyle = '#94cfff';
+    ctx.fillRect(-7,-9,14,10);
+    // Nose
+    ctx.fillStyle = '#f4fbff';
+    ctx.beginPath(); ctx.moveTo(0,-25); ctx.lineTo(-12,-6); ctx.lineTo(12,-6); ctx.closePath(); ctx.fill();
+    // Wings accents
+    ctx.fillStyle = '#4d5665';
+    ctx.fillRect(-22,6,4,16); ctx.fillRect(18,6,4,16);
+    ctx.restore();
+  }
+
+  function drawAlien(ctx, x, y, depthScale=1){
+    ctx.save(); ctx.translate(x,y);
+    ctx.scale(clamp(depthScale,.7,1.35),clamp(depthScale,.7,1.35));
+    const c1 = '#67ff79', c2='#2fd446';
+    const pixels = [
+      '00111100',
+      '01111110',
+      '11111111',
+      '11011011',
+      '11111111',
+      '00100100',
+      '01000010',
+      '10000001'
+    ];
+    const s=6;
+    for(let r=0;r<pixels.length;r++){
+      for(let c=0;c<pixels[r].length;c++){
+        if(pixels[r][c]==='1'){
+          ctx.fillStyle = (r<4?c1:c2);
+          ctx.fillRect((c-4)*s, (r-4)*s, s, s);
+        }
+      }
+    }
+    ctx.restore();
+  }
+
+  function drawProjectilePath(ctx, projector){
+    if (state.projectileHistory.length < 2) return;
+    ctx.strokeStyle = '#ffee55';
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    state.projectileHistory.forEach((p, idx) => {
+      const [x,y] = projector(p);
+      if (idx === 0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+    });
+    ctx.stroke();
+
+    const head = state.projectileHistory[state.projectileHistory.length-1];
+    const [hx,hy] = projector(head);
+    ctx.fillStyle = '#ffee55';
+    ctx.beginPath(); ctx.arc(hx,hy,8,0,Math.PI*2); ctx.fill();
+    ctx.shadowBlur = 18; ctx.shadowColor = '#ffee55';
+    ctx.beginPath(); ctx.arc(hx,hy,14,0,Math.PI*2); ctx.fillStyle = 'rgba(255,238,85,.2)'; ctx.fill();
+    ctx.shadowBlur = 0;
+  }
+
+  function drawExplosion(ctx, projector){
+    if (state.result !== 'hit') return;
+    const [x,y] = projector([state.target.x, state.target.y, state.target.z]);
+    ctx.save();
+    ctx.translate(x,y);
+    for(let i=0;i<14;i++){
+      const ang = (Math.PI*2*i)/14;
+      const r = 26 + (i%3)*6;
+      ctx.strokeStyle = i%2===0 ? '#ffd94a' : '#ff7b39';
+      ctx.lineWidth = 4;
+      ctx.beginPath();
+      ctx.moveTo(0,0);
+      ctx.lineTo(Math.cos(ang)*r, Math.sin(ang)*r);
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  function drawAxisCompass(ctx,view){
+    const origin=[ctx.canvas.width-56,ctx.canvas.height-52];
+    const axes=[
+      {v:[1,0,0],color:'#ff8979',label:'X'},
+      {v:[0,1,0],color:'#8bffb6',label:'Y'},
+      {v:[0,0,1],color:'#6cc9ff',label:'Z'}
+    ];
+    const base=project3D([0,75,0],view);
+    ctx.save();
+    ctx.fillStyle='rgba(3,12,25,.8)';
+    ctx.fillRect(origin[0]-32,origin[1]-33,78,77);
+    ctx.font='bold 12px Courier New';
+    ctx.textAlign='center';
+    for(const axis of axes){
+      const tip=project3D(add([0,75,0],scale(axis.v,22)),view);
+      const dx=tip[0]-base[0],dy=tip[1]-base[1];
+      const length=Math.hypot(dx,dy)||1;
+      const ex=origin[0]+dx/length*25,ey=origin[1]+dy/length*25;
+      ctx.strokeStyle=axis.color; ctx.lineWidth=3;
+      ctx.beginPath();ctx.moveTo(...origin);ctx.lineTo(ex,ey);ctx.stroke();
+      ctx.fillStyle=axis.color;ctx.fillText(axis.label,ex+dx/length*9,ey+dy/length*9+4);
+    }
+    ctx.restore();
+  }
+
+  function drawView(ctx, view){
+    const w = ctx.canvas.width, h = ctx.canvas.height;
+    starfield(ctx,w,h);
+    drawGrid(ctx,w,h);
+    drawVolume(ctx,view);
+    drawFieldPattern(ctx, view);
+    drawPositions(ctx,view);
+
+    const project = view === 'A' ? projectA : projectB;
+    const ship = project([0,0,0]);
+    drawShip(ctx, ship[0], ship[1]+4,ship[2]);
+
+    const targetP = project([state.target.x, state.target.y, state.target.z]);
+    drawAlien(ctx, targetP[0], targetP[1],targetP[2]);
+
+    drawProjectilePath(ctx, project);
+    drawExplosion(ctx, project);
+
+    // Center axis label hints
+    ctx.fillStyle = 'rgba(255,255,255,.14)';
+    ctx.font = '12px Courier New';
+    ctx.fillText('MAGNETFELD · RAUMANSICHT', 14, h-12);
+    drawAxisCompass(ctx,view);
+  }
+
+  function draw(){
+    drawView(ctxA,'A');
+    drawView(ctxB,'B');
+  }
+
+  updateMissionTarget();
+  refreshUI();
+  draw();
+})();
+</script>
+</body>
+</html>
