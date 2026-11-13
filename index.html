@@ -1,15 +1,210 @@
 <!DOCTYPE html>
 <html lang="de">
 <head>
-    <meta charset="UTF-8">
-    <title>Meine Linksammlung</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Simulationen Physik</title>
+  <style>
+    /* Farben und Maße sind an die Vorlage angelehnt. */
+    :root {
+      --gruen: #3ba46f;
+      --creme: #fffde5;
+      --gelb: #ffdb46;
+      --koralle: #ff6c59;
+      --rand: #111111;
+    }
+
+    * { box-sizing: border-box; }
+    html, body { min-height: 100%; }
+    body {
+      margin: 0;
+      background: var(--gruen);
+      font-family: Arial, Helvetica, sans-serif;
+    }
+
+    /* Die Bühne behält die Proportionen des Beispielbildes bei. */
+    .buehne {
+      position: relative;
+      width: 100%;
+      max-width: 1011px;
+      aspect-ratio: 1011 / 537;
+      margin: 0 auto;
+      container-type: inline-size;
+    }
+
+    .aufkleber {
+      position: absolute;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      border: 1.6px solid var(--rand);
+      color: var(--koralle);
+      background: var(--creme);
+      font-family: Arial, Helvetica, sans-serif;
+      font-weight: 900;
+      line-height: 1;
+      text-transform: uppercase;
+      -webkit-text-stroke: 1.15px var(--rand);
+      paint-order: stroke fill;
+      text-shadow: 1px 1px 0 var(--rand);
+      white-space: nowrap;
+    }
+    .aufkleber.gross {
+      left: 4.7%; top: 31.7%;
+      width: 42%; height: 17%;
+      border-radius: 100px;
+      background: var(--gelb);
+      transform: rotate(-5.8deg);
+      font-size: 4.6cqw;
+      letter-spacing: -0.08cqw;
+    }
+    .aufkleber.klein {
+      left: 18.1%; top: 51.3%;
+      width: 24.8%; height: 17.3%;
+      border-radius: 100px;
+      transform: rotate(2.5deg);
+      font-size: 5cqw;
+    }
+
+    #links { display: contents; }
+
+    .karte {
+      position: absolute;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 16.6%;
+      height: 14.15%;
+      padding: 0.7% 1.4% 0.7% 2%;
+      border: 1.7px solid var(--rand);
+      border-radius: 3px;
+      background: var(--creme);
+      color: #050505;
+      text-decoration: none;
+      text-align: center;
+      font-size: 2.05cqw;
+      font-weight: 800;
+      line-height: 1.14;
+      box-shadow: none;
+      transition: transform .16s ease, box-shadow .16s ease;
+      isolation: isolate;
+    }
+    .karte::before {
+      content: "";
+      position: absolute;
+      z-index: -1;
+      width: 33%;
+      height: 80%;
+      top: 9%;
+      left: -17%;
+      background: var(--tab-farbe, #5ac9ef);
+      border: 1px solid var(--rand);
+      border-radius: 2px;
+    }
+    .karte:hover, .karte:focus-visible {
+      transform: translateY(-3px);
+      box-shadow: 3px 5px 0 rgba(0,0,0,.18);
+    }
+    .karte:focus-visible { outline: 3px solid #111; outline-offset: 5px; }
+    .karte[data-spalte="1"] { left: 55.7%; }
+    .karte[data-spalte="2"] { left: 80%; }
+    .karte[data-zeile="1"] { top: 9.1%; }
+    .karte[data-zeile="2"] { top: 31.6%; }
+    .karte[data-zeile="3"] { top: 54.1%; }
+    .karte[data-zeile="4"] { top: 76.7%; }
+
+    @media (max-width: 680px) {
+      .buehne {
+        width: min(100%, 520px);
+        aspect-ratio: auto;
+        min-height: 100vh;
+        padding: 35px 25px 50px;
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 26px 23px;
+        align-content: start;
+      }
+      .titelbereich {
+        grid-column: 1 / -1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 14px;
+        padding: 10px 0 28px;
+      }
+      .aufkleber {
+        position: relative;
+        left: auto !important;
+        top: auto !important;
+        width: auto !important;
+        height: auto !important;
+        padding: 17px 20px;
+      }
+      .aufkleber.gross { font-size: clamp(22px, 7vw, 37px); }
+      .aufkleber.klein { font-size: clamp(29px, 9vw, 46px); padding-inline: 26px; }
+      .karte {
+        position: relative;
+        left: auto !important;
+        top: auto !important;
+        width: 100%;
+        min-height: 82px;
+        height: auto;
+        padding: 12px 8px 12px 16px;
+        font-size: clamp(14px, 4vw, 20px);
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .karte { transition: none; }
+    }
+  </style>
 </head>
 <body>
-    <h1>Willkommen auf meiner Startseite</h1>
-    <p>Wähle eine Unterseite aus:</p>
-    <ul>
-        <li><a href="space_invaders.html">Space Invaders</a></li>
-        <li><a href="lorentz_blaster.html">Zu Seite 2</a></li>
-    </ul>
+  <main class="buehne" aria-label="Links zu Physiksimulationen">
+    <div class="titelbereich">
+      <!-- DIE BEIDEN ÜBERSCHRIFTEN HIER ÄNDERN -->
+      <div class="aufkleber gross">SIMULATIONEN</div>
+      <div class="aufkleber klein">PHYSIK</div>
+    </div>
+    <nav id="links" aria-label="Simulationen"></nav>
+  </main>
+
+  <script>
+    /* ===========================================================
+       HIER KANNST DU ALLE 8 TEXTE UND LINKS EINFACH ANPASSEN!
+
+       text: Das, was auf der Kachel angezeigt wird.
+       link: Zieladresse, z. B. "mechanik.html" oder
+             "https://example.com/meine-simulation".
+       farbe: Farbe des kleinen Rechtecks links an der Kachel.
+
+       Die Reihenfolge ist: erste Zeile links/rechts, dann
+       zweite Zeile links/rechts usw.
+       =========================================================== */
+    const simulationen = [
+      { text: "Lorentz Blaster", link: "lorentz-blaster.html", farbe: "#59c8f1" },
+      { text: "Space Invaders",  link: "space-invaders.html",  farbe: "#9b87e7" },
+      { text: "Seite 3",         link: "seite3.html",         farbe: "#f1aed6" },
+      { text: "Seite 4",         link: "seite4.html",         farbe: "#ff9054" },
+      { text: "Seite 5",         link: "seite5.html",         farbe: "#9b87e7" },
+      { text: "Seite 6",         link: "seite6.html",         farbe: "#f1aed6" },
+      { text: "Seite 7",         link: "seite7.html",         farbe: "#ff9054" },
+      { text: "Seite 8",         link: "seite8.html",         farbe: "#59c8f1" }
+    ];
+
+    /* Ab hier musst du nichts verändern. */
+    const links = document.getElementById("links");
+    simulationen.forEach((eintrag, i) => {
+      const karte = document.createElement("a");
+      karte.className = "karte";
+      karte.dataset.spalte = (i % 2) + 1;
+      karte.dataset.zeile = Math.floor(i / 2) + 1;
+      karte.href = eintrag.link;
+      karte.style.setProperty("--tab-farbe", eintrag.farbe);
+      karte.textContent = eintrag.text;
+      links.appendChild(karte);
+    });
+  </script>
 </body>
 </html>
